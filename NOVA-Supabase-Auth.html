@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NOVA — Digital Marketplace</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fb;color:#111827}
+header{background:#fff;border-bottom:1px solid #e5e7eb;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
+.logo{font-size:28px;font-weight:800;background:linear-gradient(90deg,#6d28d9,#2563eb);-webkit-background-clip:text;color:transparent}
+nav button,.btn{border:0;border-radius:10px;padding:11px 15px;cursor:pointer;font-weight:700}
+.primary{background:linear-gradient(90deg,#6d28d9,#2563eb);color:#fff}.ghost{background:#f3f4f6;color:#111827}
+main{max-width:1100px;margin:auto;padding:28px 18px}.hero{background:linear-gradient(135deg,#eef2ff,#fff);border-radius:24px;padding:38px 24px;text-align:center}
+.hero h1{font-size:38px;margin:5px 0 12px}.hero p{color:#4b5563;font-size:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin-top:22px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:18px;box-shadow:0 4px 18px #1118270b}
+.price{font-size:21px;font-weight:800;color:#6d28d9}.muted{color:#6b7280}.hidden{display:none!important}
+input,select{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:10px;margin:7px 0 14px;font-size:16px}
+label{font-weight:700;font-size:14px}.modal{position:fixed;inset:0;background:#0008;display:flex;align-items:center;justify-content:center;padding:18px;z-index:10}
+.modal .box{background:#fff;border-radius:18px;padding:22px;max-width:440px;width:100%}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.spacer{height:14px}
+.notice{padding:12px;border-radius:10px;background:#eef2ff;margin:12px 0}
+footer{text-align:center;color:#6b7280;padding:35px}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<header>
+  <div class="logo">NOVA</div>
+  <nav class="row">
+    <button class="ghost" onclick="show('home')">الرئيسية</button>
+    <button class="ghost" onclick="show('account')">حسابي</button>
+    <button class="primary" onclick="openAuth()">دخول / تسجيل</button>
+  </nav>
+</header>
+
+<main>
+<section id="home">
+  <div class="hero">
+    <div class="logo">NOVA</div>
+    <h1>سوق المنتجات الرقمية العالمي</h1>
+    <p>قوالب، ملفات، كتب، مواد تعليمية وأكثر — اكتشف، اشترِ، وحمّل بسهولة.</p>
+    <div class="row" style="justify-content:center">
+      <button class="primary" onclick="openAuth()">ابدأ الآن</button>
+      <button class="ghost" onclick="show('seller')">أنشئ متجرك</button>
+    </div>
+  </div>
+  <h2>منتجات مميزة</h2>
+  <div id="products" class="grid"></div>
+</section>
+
+<section id="account" class="hidden">
+  <h2>حسابي</h2><div class="card">
+    <div id="accountInfo"></div>
+    <div class="spacer"></div>
+    <button class="ghost" onclick="logout()">تسجيل الخروج</button>
+  </div>
+  <h2>مكتبتي</h2><div id="library" class="grid"></div>
+</section>
+
+<section id="seller" class="hidden">
+  <h2>متجري</h2>
+  <div class="card">
+    <label>اسم المتجر</label><input id="storeName" placeholder="مثال: NOVA Design Studio">
+    <button class="primary" onclick="createStore()">إنشاء المتجر</button>
+  </div>
+  <div class="spacer"></div>
+  <div class="card">
+    <h3>إضافة منتج رقمي</h3>
+    <label>اسم المنتج</label><input id="pName" placeholder="اسم المنتج">
+    <label>السعر بالدولار</label><input id="pPrice" type="number" min="0" step="0.01" placeholder="10">
+    <label>الفئة</label>
+    <select id="pCat"><option>Canva Templates</option><option>Ebooks</option><option>Education</option><option>Business</option><option>Graphics</option></select>
+    <label>وصف المنتج</label><input id="pDesc" placeholder="وصف مختصر">
+    <button class="primary" onclick="addProduct()">إرسال المنتج للمراجعة</button>
+    <div id="sellerMsg"></div>
+  </div>
+</section>
+</main>
+<footer>NOVA © 2026 — Digital products marketplace</footer>
+
+<div id="modal" class="modal hidden">
+<div class="box">
+  <div class="row" style="justify-content:space-between"><h2 id="authTitle">تسجيل الدخول</h2><button class="ghost" onclick="closeAuth()">×</button></div>
+  <label>البريد الإلكتروني</label><input id="email" type="email" placeholder="you@example.com">
+  <label>كلمة المرور</label><input id="pass" type="password" placeholder="••••••••">
+  <button class="primary" style="width:100%" onclick="login()">دخول</button>
+  <div class="spacer"></div>
+  <button class="ghost" style="width:100%" onclick="register()">إنشاء حساب جديد</button>
+  <div id="authMsg" class="notice hidden"></div>
+</div></div>
+
+<script>
+const SUPABASE_URL = "https://oytncuhrmrlcbgsysbur.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_d3jvZzwwmhUsjk2eHnr9fw_LL0ChHug";
+const { createClient } = window.supabase;
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const demo=[{id:1,name:"Minimal Canva Social Pack",price:9.99,cat:"Canva Templates",desc:"قوالب سوشال ميديا جاهزة."},{id:2,name:"Business Planner",price:14,cat:"Business",desc:"ملف تخطيط أعمال رقمي."},{id:3,name:"Study Sticker Pack",price:4.99,cat:"Education",desc:"ستيكرات دراسية لطيفة."}];
+function getProducts(){return JSON.parse(localStorage.novaProducts||'null')||demo}
+function saveProducts(p){localStorage.novaProducts=JSON.stringify(p)}
+function render(){
+ const p=getProducts(); document.getElementById('products').innerHTML=p.map(x=>`<div class="card"><div class="muted">${x.cat}</div><h3>${x.name}</h3><p>${x.desc||''}</p><div class="row" style="justify-content:space-between"><span class="price">$${Number(x.price).toFixed(2)}</span><button class="primary" onclick="buy(${x.id})">شراء</button></div></div>`).join('');
+}
+function show(id){['home','account','seller'].forEach(x=>document.getElementById(x).classList.toggle('hidden',x!==id));if(id==='account')renderAccount()}
+function openAuth(){document.getElementById('modal').classList.remove('hidden');clearMsg()}
+function closeAuth(){document.getElementById('modal').classList.add('hidden');clearMsg()}
+function clearMsg(){let e=document.getElementById('authMsg');e.textContent='';e.classList.add('hidden')}
+function msg(t){let e=document.getElementById('authMsg');e.textContent=t;e.classList.remove('hidden')}
+async function register(){
+  const e=document.getElementById('email').value.trim(), p=document.getElementById('pass').value;
+  if(!e||!p)return msg('أدخل البريد الإلكتروني وكلمة المرور.');
+  if(p.length<6)return msg('كلمة المرور يجب أن تكون 6 أحرف على الأقل.');
+  const {data,error}=await supabaseClient.auth.signUp({email:e,password:p});
+  if(error)return msg(error.message);
+  if(data.session){
+    closeAuth();
+    show('account');
+    await refreshAccount();
+  }else{
+    msg('تم إنشاء الحساب. تحقق من بريدك الإلكتروني ثم سجّل الدخول.');
+  }
+}
+async function login(){
+  const e=document.getElementById('email').value.trim(), p=document.getElementById('pass').value;
+  if(!e||!p)return msg('أدخل البريد الإلكتروني وكلمة المرور.');
+  const {data,error}=await supabaseClient.auth.signInWithPassword({email:e,password:p});
+  if(error)return msg(error.message);
+  closeAuth();
+  show('account');
+  await refreshAccount();
+}
+async function logout(){await supabaseClient.auth.signOut();show('home')}
+async function currentUser(){const {data}=await supabaseClient.auth.getUser();return data.user||null}
+async function refreshAccount(){
+  const u=await currentUser();
+  const info=document.getElementById('accountInfo');
+  if(!u){info.innerHTML='<p>سجّل الدخول أولاً.</p>';return;}
+  info.innerHTML=`<b>${u.email}</b><p class="muted">حالة الحساب: نشط</p>`;
+  let lib=JSON.parse(localStorage.novaLibrary||'[]');
+  document.getElementById('library').innerHTML=lib.length?lib.map(x=>`<div class="card"><h3>${x.name}</h3><p class="muted">تمت الإضافة إلى مكتبتك.</p><button class="primary" onclick="alert('التحميل الحقيقي سنربطه لاحقًا بالتخزين الآمن.')">تحميل</button></div>`).join(''):'<div class="card"><p class="muted">لا توجد مشتريات بعد.</p></div>';
+}
+function renderAccount(){refreshAccount()}
+function buy(id){if(!localStorage.novaSession){openAuth();return}let p=getProducts().find(x=>x.id===id),lib=JSON.parse(localStorage.novaLibrary||'[]');if(!lib.some(x=>x.id===id)){lib.push(p);localStorage.novaLibrary=JSON.stringify(lib)}alert('تمت محاكاة نجاح الشراء وإضافة المنتج إلى مكتبتك.');show('account')}
+async function createStore(){if(!(await currentUser())){openAuth();return}let n=document.getElementById('storeName').value.trim();if(!n)return alert('اكتب اسم المتجر.');localStorage.novaStore=n;alert('تم إنشاء المتجر مبدئيًا. سنربطه بقاعدة البيانات في الخطوة التالية.')}
+async function addProduct(){if(!(await currentUser())){openAuth();return}let n=document.getElementById('pName').value.trim(),price=Number(document.getElementById('pPrice').value),cat=document.getElementById('pCat').value,desc=document.getElementById('pDesc').value.trim();if(!n||!price)return alert('أدخل اسم المنتج والسعر.');let p=getProducts();p.push({id:Date.now(),name:n,price,cat,desc,status:'pending_review'});saveProducts(p);document.getElementById('sellerMsg').innerHTML='<div class="notice">تم إرسال المنتج للمراجعة في النسخة التجريبية.</div>';render()}
+
+supabaseClient.auth.getSession().then(({data})=>{
+  if(data.session) localStorage.novaSession='1';
+});
+supabaseClient.auth.onAuthStateChange((_event,session)=>{
+  if(session) localStorage.novaSession='1';
+  else localStorage.removeItem('novaSession');
+});
+render();
+</script>
+</body></html>
