@@ -79,6 +79,16 @@ footer{text-align:center;color:#6b7280;padding:35px}
 </main>
 <footer>NOVA © 2026 — Digital products marketplace</footer>
 
+<div id="recoveryModal" class="modal hidden">
+<div class="box">
+  <h2>تعيين كلمة مرور جديدة</h2>
+  <p class="muted">أدخل كلمة المرور الجديدة لحسابك.</p>
+  <label>كلمة المرور الجديدة</label><input id="newPass" type="password" placeholder="6 أحرف على الأقل">
+  <label>تأكيد كلمة المرور</label><input id="newPass2" type="password" placeholder="أعد كتابة كلمة المرور">
+  <button class="primary" style="width:100%" onclick="updatePassword()">حفظ كلمة المرور</button>
+  <div id="recoveryMsg" class="notice hidden"></div>
+</div></div>
+
 <div id="modal" class="modal hidden">
 <div class="box">
   <div class="row" style="justify-content:space-between"><h2 id="authTitle">تسجيل الدخول</h2><button class="ghost" onclick="closeAuth()">×</button></div>
@@ -87,6 +97,7 @@ footer{text-align:center;color:#6b7280;padding:35px}
   <button class="primary" style="width:100%" onclick="login()">دخول</button>
   <div class="spacer"></div>
   <button class="ghost" style="width:100%" onclick="register()">إنشاء حساب جديد</button>
+  <button class="ghost" style="width:100%;margin-top:8px" onclick="forgotPassword()">نسيت كلمة المرور؟</button>
   <div id="authMsg" class="notice hidden"></div>
 </div></div>
 
@@ -107,6 +118,15 @@ function openAuth(){document.getElementById('modal').classList.remove('hidden');
 function closeAuth(){document.getElementById('modal').classList.add('hidden');clearMsg()}
 function clearMsg(){let e=document.getElementById('authMsg');e.textContent='';e.classList.add('hidden')}
 function msg(t){let e=document.getElementById('authMsg');e.textContent=t;e.classList.remove('hidden')}
+function recoveryMsg(t){let e=document.getElementById('recoveryMsg');e.textContent=t;e.classList.remove('hidden')}
+async function forgotPassword(){
+  const e=document.getElementById('email').value.trim();
+  if(!e)return msg('أدخل بريدك الإلكتروني أولاً.');
+  const redirectTo='https://alhenaneweaam-web.github.io/Nova/';
+  const {error}=await supabaseClient.auth.resetPasswordForEmail(e,{redirectTo});
+  if(error)return msg(error.message);
+  msg('تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.');
+}
 async function register(){
   const e=document.getElementById('email').value.trim(), p=document.getElementById('pass').value;
   if(!e||!p)return msg('أدخل البريد الإلكتروني وكلمة المرور.');
@@ -120,6 +140,19 @@ async function register(){
   }else{
     msg('تم إنشاء الحساب. تحقق من بريدك الإلكتروني ثم سجّل الدخول.');
   }
+}
+async function updatePassword(){
+  const p=document.getElementById('newPass').value;
+  const p2=document.getElementById('newPass2').value;
+  if(!p||p.length<6)return recoveryMsg('كلمة المرور يجب أن تكون 6 أحرف على الأقل.');
+  if(p!==p2)return recoveryMsg('كلمتا المرور غير متطابقتين.');
+  const {error}=await supabaseClient.auth.updateUser({password:p});
+  if(error)return recoveryMsg(error.message);
+  document.getElementById('recoveryModal').classList.add('hidden');
+  document.getElementById('newPass').value='';
+  document.getElementById('newPass2').value='';
+  alert('تم تغيير كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول.');
+  openAuth();
 }
 async function login(){
   const e=document.getElementById('email').value.trim(), p=document.getElementById('pass').value;
@@ -170,6 +203,14 @@ async function createStore(){
   }
 async function addProduct(){if(!(await currentUser())){openAuth();return}let n=document.getElementById('pName').value.trim(),price=Number(document.getElementById('pPrice').value),cat=document.getElementById('pCat').value,desc=document.getElementById('pDesc').value.trim();if(!n||!price)return alert('أدخل اسم المنتج والسعر.');let p=getProducts();p.push({id:Date.now(),name:n,price,cat,desc,status:'pending_review'});saveProducts(p);document.getElementById('sellerMsg').innerHTML='<div class="notice">تم إرسال المنتج للمراجعة في النسخة التجريبية.</div>';render()}
 
+supabaseClient.auth.onAuthStateChange((event,session)=>{
+  if(event==='PASSWORD_RECOVERY'){
+    document.getElementById('recoveryModal').classList.remove('hidden');
+    clearMsg();
+  }
+  if(session) localStorage.novaSession='1';
+  else if(event==='SIGNED_OUT') localStorage.removeItem('novaSession');
+});
 supabaseClient.auth.getSession().then(({data})=>{
   if(data.session) localStorage.novaSession='1';
 });
