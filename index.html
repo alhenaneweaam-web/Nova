@@ -202,7 +202,7 @@ async function refreshAccount(){
 }
 function renderAccount(){refreshAccount()}
 function buy(id){if(!localStorage.novaSession){openAuth();return}let p=getProducts().find(x=>x.id===id),lib=JSON.parse(localStorage.novaLibrary||'[]');if(!lib.some(x=>x.id===id)){lib.push(p);localStorage.novaLibrary=JSON.stringify(lib)}alert('تمت محاكاة نجاح الشراء وإضافة المنتج إلى مكتبتك.');show('account')}
-async function createStore(){
+async async function createStore(){
   const u=await currentUser();
   if(!u){openAuth();return}
 
