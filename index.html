@@ -53,6 +53,7 @@ footer{text-align:center;color:#6b7280;padding:35px}
   <h2>حسابي</h2><div class="card">
     <div id="accountInfo"></div>
     <div class="spacer"></div>
+    <button class="primary" style="width:100%;margin-bottom:8px" onclick="openRecoveryPassword()">تغيير كلمة المرور</button>
     <button class="ghost" onclick="logout()">تسجيل الخروج</button>
   </div>
   <h2>مكتبتي</h2><div id="library" class="grid"></div>
@@ -125,6 +126,12 @@ function closeAuth(){document.getElementById('modal').classList.add('hidden');cl
 function clearMsg(){let e=document.getElementById('authMsg');e.textContent='';e.classList.add('hidden')}
 function msg(t){let e=document.getElementById('authMsg');e.textContent=t;e.classList.remove('hidden')}
 function recoveryMsg(t){let e=document.getElementById('recoveryMsg');e.textContent=t;e.classList.remove('hidden')}
+function openRecoveryPassword(){
+  document.getElementById('recoveryModal').classList.remove('hidden');
+  document.getElementById('newPass').value='';
+  document.getElementById('newPass2').value='';
+  recoveryMsg('أدخل كلمة المرور الجديدة ثم اضغط حفظ كلمة المرور.');
+}
 async function verifyRecoveryOtp(){
   const e=document.getElementById('recoveryEmail').value.trim() || document.getElementById('email').value.trim();
   const token=document.getElementById('recoveryToken').value.trim();
