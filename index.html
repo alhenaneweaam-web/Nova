@@ -142,7 +142,32 @@ async function refreshAccount(){
 }
 function renderAccount(){refreshAccount()}
 function buy(id){if(!localStorage.novaSession){openAuth();return}let p=getProducts().find(x=>x.id===id),lib=JSON.parse(localStorage.novaLibrary||'[]');if(!lib.some(x=>x.id===id)){lib.push(p);localStorage.novaLibrary=JSON.stringify(lib)}alert('تمت محاكاة نجاح الشراء وإضافة المنتج إلى مكتبتك.');show('account')}
-async function createStore(){if(!(await currentUser())){openAuth();return}let n=document.getElementById('storeName').value.trim();if(!n)return alert('اكتب اسم المتجر.');localStorage.novaStore=n;alert('تم إنشاء المتجر مبدئيًا. سنربطه بقاعدة البيانات في الخطوة التالية.')}
+async function async function createStore(){
+  const u=await currentUser();
+  if(!u){openAuth();return}
+
+  const n=document.getElementById('storeName').value.trim();
+  if(!n)return alert('اكتب اسم المتجر.');
+
+  const slug='nova-'+Date.now();
+
+  const {error}=await supabaseClient
+    .from('stores')
+    .insert({
+      owner_id:u.id,
+      name:n,
+      slug:slug,
+      status:'pending'
+    });
+
+  if(error){
+    alert('حدث خطأ: '+error.message);
+    return;
+  }
+
+  document.getElementById('storeName').value='';
+  alert('🎉 تم إنشاء المتجر وحفظه في قاعدة بيانات NOVA بنجاح!');
+  }
 async function addProduct(){if(!(await currentUser())){openAuth();return}let n=document.getElementById('pName').value.trim(),price=Number(document.getElementById('pPrice').value),cat=document.getElementById('pCat').value,desc=document.getElementById('pDesc').value.trim();if(!n||!price)return alert('أدخل اسم المنتج والسعر.');let p=getProducts();p.push({id:Date.now(),name:n,price,cat,desc,status:'pending_review'});saveProducts(p);document.getElementById('sellerMsg').innerHTML='<div class="notice">تم إرسال المنتج للمراجعة في النسخة التجريبية.</div>';render()}
 
 supabaseClient.auth.getSession().then(({data})=>{
