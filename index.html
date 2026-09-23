@@ -203,6 +203,15 @@ async function createStore(){
   }
 async function addProduct(){if(!(await currentUser())){openAuth();return}let n=document.getElementById('pName').value.trim(),price=Number(document.getElementById('pPrice').value),cat=document.getElementById('pCat').value,desc=document.getElementById('pDesc').value.trim();if(!n||!price)return alert('أدخل اسم المنتج والسعر.');let p=getProducts();p.push({id:Date.now(),name:n,price,cat,desc,status:'pending_review'});saveProducts(p);document.getElementById('sellerMsg').innerHTML='<div class="notice">تم إرسال المنتج للمراجعة في النسخة التجريبية.</div>';render()}
 
+function openRecoveryFromUrl(){
+  const hash=new URLSearchParams(window.location.hash.slice(1));
+  const query=new URLSearchParams(window.location.search);
+  const isRecovery=hash.get('type')==='recovery' || query.get('type')==='recovery';
+  if(!isRecovery)return;
+  document.getElementById('recoveryModal').classList.remove('hidden');
+  clearMsg();
+}
+
 supabaseClient.auth.onAuthStateChange((event,session)=>{
   if(event==='PASSWORD_RECOVERY'){
     document.getElementById('recoveryModal').classList.remove('hidden');
