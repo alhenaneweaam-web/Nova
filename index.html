@@ -142,7 +142,10 @@ async function forgotPassword(){
   if(!e)return msg('أدخل بريدك الإلكتروني أولاً.');
   const {error}=await supabaseClient.auth.resetPasswordForEmail(e);
   if(error)return msg(error.message);
-  msg('تم إرسال رمز إعادة تعيين كلمة المرور إلى بريدك الإلكتروني. افتح الرسالة وابحث عن الرمز، ثم سنكمل من هنا.');
+  document.getElementById('recoveryEmail').value=e;
+  document.getElementById('recoveryToken').value='';
+  document.getElementById('recoveryOtpBox').classList.remove('hidden');
+  msg('تم إرسال رمز إعادة تعيين كلمة المرور إلى بريدك الإلكتروني. أدخل الرمز هنا.');
 }
 async function register(){
   const e=document.getElementById('email').value.trim(), p=document.getElementById('pass').value;
