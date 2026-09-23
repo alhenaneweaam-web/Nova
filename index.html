@@ -98,6 +98,12 @@ footer{text-align:center;color:#6b7280;padding:35px}
   <div class="spacer"></div>
   <button class="ghost" style="width:100%" onclick="register()">إنشاء حساب جديد</button>
   <button class="ghost" style="width:100%;margin-top:8px" onclick="forgotPassword()">نسيت كلمة المرور؟</button>
+  <div id="recoveryOtpBox" class="hidden" style="margin-top:12px">
+    <label>رمز الاستعادة من البريد</label>
+    <input id="recoveryEmail" type="email" placeholder="البريد الإلكتروني">
+    <input id="recoveryToken" inputmode="numeric" maxlength="8" placeholder="أدخل الرمز المرسل إلى بريدك">
+    <button class="primary" style="width:100%" onclick="verifyRecoveryOtp()">تحقق من الرمز</button>
+  </div>
   <div id="authMsg" class="notice hidden"></div>
 </div></div>
 
@@ -119,13 +125,24 @@ function closeAuth(){document.getElementById('modal').classList.add('hidden');cl
 function clearMsg(){let e=document.getElementById('authMsg');e.textContent='';e.classList.add('hidden')}
 function msg(t){let e=document.getElementById('authMsg');e.textContent=t;e.classList.remove('hidden')}
 function recoveryMsg(t){let e=document.getElementById('recoveryMsg');e.textContent=t;e.classList.remove('hidden')}
+async function verifyRecoveryOtp(){
+  const e=document.getElementById('recoveryEmail').value.trim() || document.getElementById('email').value.trim();
+  const token=document.getElementById('recoveryToken').value.trim();
+  if(!e||!token)return msg('أدخل البريد الإلكتروني والرمز.');
+  const {error}=await supabaseClient.auth.verifyOtp({email:e,token,type:'recovery'});
+  if(error)return msg(error.message);
+  document.getElementById('recoveryOtpBox').classList.add('hidden');
+  document.getElementById('modal').classList.add('hidden');
+  document.getElementById('recoveryModal').classList.remove('hidden');
+  clearMsg();
+}
+
 async function forgotPassword(){
   const e=document.getElementById('email').value.trim();
   if(!e)return msg('أدخل بريدك الإلكتروني أولاً.');
-  const redirectTo='https://alhenaneweaam-web.github.io/Nova/';
-  const {error}=await supabaseClient.auth.resetPasswordForEmail(e,{redirectTo});
+  const {error}=await supabaseClient.auth.resetPasswordForEmail(e);
   if(error)return msg(error.message);
-  msg('تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.');
+  msg('تم إرسال رمز إعادة تعيين كلمة المرور إلى بريدك الإلكتروني. افتح الرسالة وابحث عن الرمز، ثم سنكمل من هنا.');
 }
 async function register(){
   const e=document.getElementById('email').value.trim(), p=document.getElementById('pass').value;
