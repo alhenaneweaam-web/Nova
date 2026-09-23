@@ -203,13 +203,26 @@ async function createStore(){
   }
 async function addProduct(){if(!(await currentUser())){openAuth();return}let n=document.getElementById('pName').value.trim(),price=Number(document.getElementById('pPrice').value),cat=document.getElementById('pCat').value,desc=document.getElementById('pDesc').value.trim();if(!n||!price)return alert('أدخل اسم المنتج والسعر.');let p=getProducts();p.push({id:Date.now(),name:n,price,cat,desc,status:'pending_review'});saveProducts(p);document.getElementById('sellerMsg').innerHTML='<div class="notice">تم إرسال المنتج للمراجعة في النسخة التجريبية.</div>';render()}
 
-function openRecoveryFromUrl(){
-  const hash=new URLSearchParams(window.location.hash.slice(1));
-  const query=new URLSearchParams(window.location.search);
-  const isRecovery=hash.get('type')==='recovery' || query.get('type')==='recovery';
-  if(!isRecovery)return;
-  document.getElementById('recoveryModal').classList.remove('hidden');
-  clearMsg();
+async function handleRecoveryRedirect(){
+  const url=new URL(window.location.href);
+  const code=url.searchParams.get('code');
+
+  if(code){
+    const {error}=await supabaseClient.auth.exchangeCodeForSession(code);
+    if(error){
+      console.error(error);
+      document.getElementById('recoveryModal').classList.remove('hidden');
+      recoveryMsg('تعذر فتح رابط الاستعادة. اطلب رابطًا جديدًا ثم افتحه على نفس الجهاز.');
+      return;
+    }
+  }
+
+  const hash=new URLSearchParams(url.hash.slice(1));
+  const isRecovery=hash.get('type')==='recovery' || url.searchParams.get('type')==='recovery' || !!code;
+  if(isRecovery){
+    document.getElementById('recoveryModal').classList.remove('hidden');
+    clearMsg();
+  }
 }
 
 supabaseClient.auth.onAuthStateChange((event,session)=>{
@@ -220,10 +233,11 @@ supabaseClient.auth.onAuthStateChange((event,session)=>{
   if(session) localStorage.novaSession='1';
   else if(event==='SIGNED_OUT') localStorage.removeItem('novaSession');
 });
-supabaseClient.auth.getSession().then(({data})=>{
+(async()=>{
+  await handleRecoveryRedirect();
+  const {data}=await supabaseClient.auth.getSession();
   if(data.session) localStorage.novaSession='1';
-  openRecoveryFromUrl();
-});
+})();
 supabaseClient.auth.onAuthStateChange((_event,session)=>{
   if(session) localStorage.novaSession='1';
   else localStorage.removeItem('novaSession');
