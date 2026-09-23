@@ -89,8 +89,6 @@ footer{text-align:center;color:#6b7280;padding:35px}
   <button class="ghost" style="width:100%" onclick="register()">إنشاء حساب جديد</button>
   <div id="authMsg" class="notice hidden"></div>
 </div></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> 
-
 
 <script>
 const SUPABASE_URL = "https://oytncuhrmrlcbgsysbur.supabase.co";
@@ -144,7 +142,7 @@ async function refreshAccount(){
 }
 function renderAccount(){refreshAccount()}
 function buy(id){if(!localStorage.novaSession){openAuth();return}let p=getProducts().find(x=>x.id===id),lib=JSON.parse(localStorage.novaLibrary||'[]');if(!lib.some(x=>x.id===id)){lib.push(p);localStorage.novaLibrary=JSON.stringify(lib)}alert('تمت محاكاة نجاح الشراء وإضافة المنتج إلى مكتبتك.');show('account')}
-async function async function createStore(){
+async function createStore(){
   const u=await currentUser();
   if(!u){openAuth();return}
 
