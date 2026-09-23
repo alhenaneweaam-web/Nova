@@ -222,6 +222,7 @@ supabaseClient.auth.onAuthStateChange((event,session)=>{
 });
 supabaseClient.auth.getSession().then(({data})=>{
   if(data.session) localStorage.novaSession='1';
+  openRecoveryFromUrl();
 });
 supabaseClient.auth.onAuthStateChange((_event,session)=>{
   if(session) localStorage.novaSession='1';
