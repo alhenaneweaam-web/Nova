@@ -206,19 +206,34 @@ async function addProduct(){if(!(await currentUser())){openAuth();return}let n=d
 async function handleRecoveryRedirect(){
   const url=new URL(window.location.href);
   const code=url.searchParams.get('code');
+  const tokenHash=url.searchParams.get('token_hash');
+  const queryType=url.searchParams.get('type');
 
   if(code){
     const {error}=await supabaseClient.auth.exchangeCodeForSession(code);
     if(error){
       console.error(error);
       document.getElementById('recoveryModal').classList.remove('hidden');
-      recoveryMsg('تعذر فتح رابط الاستعادة. اطلب رابطًا جديدًا ثم افتحه على نفس الجهاز.');
+      recoveryMsg('تعذر فتح رابط الاستعادة. اطلب رابطًا جديدًا.');
+      return;
+    }
+  }else if(tokenHash && queryType==='recovery'){
+    const {error}=await supabaseClient.auth.verifyOtp({token_hash:tokenHash,type:'recovery'});
+    if(error){
+      console.error(error);
+      document.getElementById('recoveryModal').classList.remove('hidden');
+      recoveryMsg('تعذر التحقق من رابط الاستعادة. اطلب رابطًا جديدًا.');
       return;
     }
   }
 
   const hash=new URLSearchParams(url.hash.slice(1));
-  const isRecovery=hash.get('type')==='recovery' || url.searchParams.get('type')==='recovery' || !!code;
+  const isRecovery=
+    hash.get('type')==='recovery' ||
+    queryType==='recovery' ||
+    !!code ||
+    (tokenHash && queryType==='recovery');
+
   if(isRecovery){
     document.getElementById('recoveryModal').classList.remove('hidden');
     clearMsg();
