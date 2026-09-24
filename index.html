@@ -202,7 +202,7 @@ async function refreshAccount(){
 }
 function renderAccount(){refreshAccount()}
 function buy(id){if(!localStorage.novaSession){openAuth();return}let p=getProducts().find(x=>x.id===id),lib=JSON.parse(localStorage.novaLibrary||'[]');if(!lib.some(x=>x.id===id)){lib.push(p);localStorage.novaLibrary=JSON.stringify(lib)}alert('تمت محاكاة نجاح الشراء وإضافة المنتج إلى مكتبتك.');show('account')}
-async async function createStore(){
+async function createStore(){
   const u=await currentUser();
   if(!u){openAuth();return}
 
@@ -228,7 +228,56 @@ async async function createStore(){
   document.getElementById('storeName').value='';
   alert('🎉 تم إنشاء المتجر وحفظه في قاعدة بيانات NOVA بنجاح!');
   }
-async function addProduct(){if(!(await currentUser())){openAuth();return}let n=document.getElementById('pName').value.trim(),price=Number(document.getElementById('pPrice').value),cat=document.getElementById('pCat').value,desc=document.getElementById('pDesc').value.trim();if(!n||!price)return alert('أدخل اسم المنتج والسعر.');let p=getProducts();p.push({id:Date.now(),name:n,price,cat,desc,status:'pending_review'});saveProducts(p);document.getElementById('sellerMsg').innerHTML='<div class="notice">تم إرسال المنتج للمراجعة في النسخة التجريبية.</div>';render()}
+async function addProduct(){
+  const u=await currentUser();
+  if(!u){openAuth();return}
+
+  const n=document.getElementById('pName').value.trim();
+  const price=Number(document.getElementById('pPrice').value);
+  const cat=document.getElementById('pCat').value;
+  const desc=document.getElementById('pDesc').value.trim();
+
+  if(!n||!price)return alert('أدخل اسم المنتج والسعر.');
+
+  const {data:store,error:storeError}=await supabaseClient
+    .from('stores')
+    .select('id')
+    .eq('owner_id',u.id)
+    .limit(1)
+    .maybeSingle();
+
+  if(storeError){
+    alert('تعذر الوصول إلى المتجر: '+storeError.message);
+    return;
+  }
+
+  if(!store){
+    alert('أنشئ متجرك أولاً ثم أضف المنتج.');
+    return;
+  }
+
+  const {error}=await supabaseClient
+    .from('products')
+    .insert({
+      store_id:store.id,
+      owner_id:u.id,
+      name:n,
+      price:price,
+      category:cat,
+      description:desc,
+      status:'pending_review'
+    });
+
+  if(error){
+    alert('حدث خطأ أثناء حفظ المنتج: '+error.message);
+    return;
+  }
+
+  document.getElementById('pName').value='';
+  document.getElementById('pPrice').value='';
+  document.getElementById('pDesc').value='';
+  document.getElementById('sellerMsg').innerHTML='<div class="notice">🎉 تم إرسال المنتج للمراجعة وحفظه في قاعدة بيانات NOVA بنجاح.</div>';
+}
 
 async function handleRecoveryRedirect(){
   const url=new URL(window.location.href);
