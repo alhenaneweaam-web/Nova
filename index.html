@@ -115,10 +115,36 @@ const { createClient } = window.supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 const demo=[{id:1,name:"Minimal Canva Social Pack",price:9.99,cat:"Canva Templates",desc:"قوالب سوشال ميديا جاهزة."},{id:2,name:"Business Planner",price:14,cat:"Business",desc:"ملف تخطيط أعمال رقمي."},{id:3,name:"Study Sticker Pack",price:4.99,cat:"Education",desc:"ستيكرات دراسية لطيفة."}];
-function getProducts(){return JSON.parse(localStorage.novaProducts||'null')||demo}
-function saveProducts(p){localStorage.novaProducts=JSON.stringify(p)}
+let catalogProducts=JSON.parse(localStorage.novaProducts||'null')||demo;
+function getProducts(){return catalogProducts}
+function saveProducts(p){catalogProducts=p;localStorage.novaProducts=JSON.stringify(p)}
+async function loadProducts(){
+  const {data,error}=await supabaseClient
+    .from('products')
+    .select('id,name,price,category,description,status,created_at')
+    .eq('status','approved')
+    .order('created_at',{ascending:false});
+
+  if(error){
+    console.error('تعذر تحميل المنتجات من Supabase:',error);
+    render();
+    return;
+  }
+
+  catalogProducts=(data&&data.length)?data.map(x=>({
+    id:x.id,
+    name:x.name,
+    price:Number(x.price),
+    cat:x.category,
+    desc:x.description||''
+  })):[];
+
+  render();
+}
 function render(){
- const p=getProducts(); document.getElementById('products').innerHTML=p.map(x=>`<div class="card"><div class="muted">${x.cat}</div><h3>${x.name}</h3><p>${x.desc||''}</p><div class="row" style="justify-content:space-between"><span class="price">$${Number(x.price).toFixed(2)}</span><button class="primary" onclick="buy(${x.id})">شراء</button></div></div>`).join('');
+ const p=getProducts();
+ const el=document.getElementById('products');
+ el.innerHTML=p.length?p.map(x=>`<div class="card"><div class="muted">${x.cat}</div><h3>${x.name}</h3><p>${x.desc||''}</p><div class="row" style="justify-content:space-between"><span class="price">${Number(x.price).toFixed(2)}</span><button class="primary" onclick="buy('${x.id}')">شراء</button></div></div>`).join(''):'<div class="card"><p class="muted">لا توجد منتجات منشورة حاليًا.</p></div>';
 }
 function show(id){['home','account','seller'].forEach(x=>document.getElementById(x).classList.toggle('hidden',x!==id));if(id==='account')renderAccount()}
 function openAuth(){document.getElementById('modal').classList.remove('hidden');clearMsg()}
@@ -334,5 +360,6 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{
   else localStorage.removeItem('novaSession');
 });
 render();
+loadProducts();
 </script>
 </body></html>
