@@ -223,11 +223,45 @@ async function refreshAccount(){
   const info=document.getElementById('accountInfo');
   if(!u){info.innerHTML='<p>سجّل الدخول أولاً.</p>';return;}
   info.innerHTML=`<b>${u.email}</b><p class="muted">حالة الحساب: نشط</p>`;
-  let lib=JSON.parse(localStorage.novaLibrary||'[]');
-  document.getElementById('library').innerHTML=lib.length?lib.map(x=>`<div class="card"><h3>${x.name}</h3><p class="muted">تمت الإضافة إلى مكتبتك.</p><button class="primary" onclick="alert('التحميل الحقيقي سنربطه لاحقًا بالتخزين الآمن.')">تحميل</button></div>`).join(''):'<div class="card"><p class="muted">لا توجد مشتريات بعد.</p></div>';
+  const {data:orders,error:ordersError}=await supabaseClient
+    .from('orders')
+    .select('id,product_name,price,status,created_at')
+    .eq('buyer_id',u.id)
+    .order('created_at',{ascending:false});
+  if(ordersError){
+    console.error('تعذر تحميل الطلبات:',ordersError);
+    document.getElementById('library').innerHTML='<div class="card"><p class="muted">تعذر تحميل المشتريات حاليًا.</p></div>';
+    return;
+  }
+  document.getElementById('library').innerHTML=orders&&orders.length?orders.map(x=>`<div class="card"><h3>${x.product_name}</h3><p class="muted">السعر: ${Number(x.price).toFixed(2)} دولار — حالة الطلب: ${x.status}</p><button class="primary" onclick="alert('سيتم ربط التحميل الحقيقي بالملف بعد إكمال نظام الدفع والتخزين الآمن.')">تحميل</button></div>`).join(''):'<div class="card"><p class="muted">لا توجد مشتريات بعد.</p></div>';
 }
 function renderAccount(){refreshAccount()}
-function buy(id){if(!localStorage.novaSession){openAuth();return}let p=getProducts().find(x=>x.id===id),lib=JSON.parse(localStorage.novaLibrary||'[]');if(!lib.some(x=>x.id===id)){lib.push(p);localStorage.novaLibrary=JSON.stringify(lib)}alert('تمت محاكاة نجاح الشراء وإضافة المنتج إلى مكتبتك.');show('account')}
+async function buy(id){
+  const u=await currentUser();
+  if(!u){openAuth();return}
+
+  const p=getProducts().find(x=>x.id===id);
+  if(!p){alert('تعذر العثور على المنتج.');return}
+
+  const {error}=await supabaseClient
+    .from('orders')
+    .insert({
+      buyer_id:u.id,
+      product_id:p.id,
+      product_name:p.name,
+      price:Number(p.price),
+      status:'pending'
+    });
+
+  if(error){
+    alert('تعذر إنشاء الطلب: '+error.message);
+    return;
+  }
+
+  alert('🎉 تم إنشاء طلبك وحفظه في قاعدة بيانات NOVA بنجاح!');
+  show('account');
+  await refreshAccount();
+}
 async function createStore(){
   const u=await currentUser();
   if(!u){openAuth();return}
