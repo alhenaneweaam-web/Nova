@@ -225,7 +225,7 @@ async function refreshAccount(){
   info.innerHTML=`<b>${u.email}</b><p class="muted">حالة الحساب: نشط</p>`;
   const {data:orders,error:ordersError}=await supabaseClient
     .from('orders')
-    .select('id,product_name,price,status,created_at')
+    .select('id,product_id,product_name,price,status,created_at')
     .eq('buyer_id',u.id)
     .order('created_at',{ascending:false});
   if(ordersError){
@@ -233,7 +233,48 @@ async function refreshAccount(){
     document.getElementById('library').innerHTML='<div class="card"><p class="muted">تعذر تحميل المشتريات حاليًا.</p></div>';
     return;
   }
-  document.getElementById('library').innerHTML=orders&&orders.length?orders.map(x=>`<div class="card"><h3>${x.product_name}</h3><p class="muted">السعر: ${Number(x.price).toFixed(2)} دولار — حالة الطلب: ${x.status}</p><button class="primary" onclick="alert('سيتم ربط التحميل الحقيقي بالملف بعد إكمال نظام الدفع والتخزين الآمن.')">تحميل</button></div>`).join(''):'<div class="card"><p class="muted">لا توجد مشتريات بعد.</p></div>';
+  document.getElementById('library').innerHTML=orders&&orders.length?orders.map(x=>`<div class="card"><h3>${x.product_name}</h3><p class="muted">السعر: ${Number(x.price).toFixed(2)} دولار — حالة الطلب: ${x.status}</p><button class="primary" onclick="downloadProductFiles('${x.product_id}')">تحميل الملفات</button><div id="files-${x.product_id}" class="spacer"></div></div>`).join(''):'<div class="card"><p class="muted">لا توجد مشتريات بعد.</p></div>';
+}
+async function downloadProductFiles(productId){
+  const u=await currentUser();
+  if(!u){openAuth();return}
+
+  const {data:files,error}=await supabaseClient
+    .from('product_files')
+    .select('id,file_path')
+    .eq('product_id',productId)
+    .order('created_at',{ascending:true});
+
+  const box=document.getElementById('files-'+productId);
+  if(error){
+    console.error('تعذر تحميل قائمة الملفات:',error);
+    if(box)box.innerHTML='<div class="notice">تعذر الوصول إلى ملفات المنتج حاليًا.</div>';
+    return;
+  }
+
+  if(!files||!files.length){
+    if(box)box.innerHTML='<div class="notice">لا توجد ملفات مرتبطة بهذا المنتج حاليًا.</div>';
+    return;
+  }
+
+  const {data:signed,error:signedError}=await supabaseClient
+    .storage
+    .from('products')
+    .createSignedUrls(files.map(f=>f.file_path),3600,{download:true});
+
+  if(signedError||!signed){
+    console.error('تعذر إنشاء روابط التحميل:',signedError);
+    if(box)box.innerHTML='<div class="notice">تعذر إنشاء رابط التحميل الآمن حاليًا.</div>';
+    return;
+  }
+
+  const links=signed.map((item,i)=>{
+    const url=item.signedUrl||item.signedURL;
+    const name=files[i].file_path.split('/').pop();
+    return url?`<a class="primary" style="display:block;text-align:center;text-decoration:none;margin-top:8px" href="${url}" download>تحميل ${name}</a>`:'';
+  }).filter(Boolean).join('');
+
+  if(box)box.innerHTML='<div class="notice">روابط التحميل آمنة وصالحة لمدة ساعة:</div>'+links;
 }
 function renderAccount(){refreshAccount()}
 async function buy(id){
